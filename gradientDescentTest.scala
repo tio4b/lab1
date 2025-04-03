@@ -1,9 +1,6 @@
-import gradientDescent.*
-import scala.collection.immutable.HashSet
-import GradientDescentTest.knownMinima
-import scala.collection.Factory
+import gradientDescent._
 
-object GradientDescentTest {
+object gradientDescentTest {
 
   val precision = 1e-4
 
@@ -65,6 +62,48 @@ object GradientDescentTest {
     )
   )
 
+  def formatNumber(value: Double): String = {
+    if (s"%.5f".format(value).length > 8) s"%.5e".format(value)
+    else s"%.5f".format(value)
+  }
+
+  def printTableHeader(): Unit = {
+    println(
+      "| %-20s | %-30s | %-15s | %-10s | %-12s |".format(
+        "Method",
+        "Found Point (x, y)",
+        "Function Value",
+        "Iterations",
+        "Correctness"
+      )
+    )
+    println(
+      "|" + "-" * 22 + "|" + "-" * 32 + "|" + "-" * 17 + "|" + "-" * 12 + "|" + "-" * 14 + "|"
+    )
+  }
+
+  def printTableRow(
+      method: String,
+      point: Point,
+      value: Double,
+      iterations: Int,
+      correct: Boolean
+  ): Unit = {
+    val pointStr = s"(${formatNumber(point.x)}, ${formatNumber(point.y)})"
+    val valueStr = formatNumber(value)
+    val correctStr = if (correct) "YES" else "NO"
+
+    println(
+      "| %-20s | %-30s | %-15s | %-10d | %-12s |".format(
+        method,
+        pointStr,
+        valueStr,
+        iterations,
+        correctStr
+      )
+    )
+  }
+
   def runTests(): Unit = {
     println("=== Gradient Descent Method Testing ===")
     println(s"Comparison precision: $precision")
@@ -73,8 +112,9 @@ object GradientDescentTest {
     testCases.foreach { testCase =>
       println(s"\nTesting function: ${testCase.name}")
       println(s"Start point: ${testCase.startPoint.printCords}")
-      println(s"Expected minimums: ${testCase.expectedPoint.foreach(_.printCords)}")
-      println("-" * 50)
+      println("Expected minima:")
+      testCase.expectedPoint.foreach(p => println(s"  ${p.printCords}"))
+      println()
 
       val quadFunc = QuadFunc(testCase.function)
 
@@ -86,25 +126,27 @@ object GradientDescentTest {
         wolfeRule(testCase.function)
       )
 
-      optimizationMethods.foreach { scheduler =>
+      printTableHeader()
 
+      optimizationMethods.foreach { scheduler =>
         val (minCords, iterations) =
           quadFunc.gradientDescent(testCase.startPoint, scheduler)
 
-        val resultValue = Point(Array(minCords.x, minCords.y, testCase.function(minCords)))
+        val resultValue =
+          Point(Array(minCords.x, minCords.y, testCase.function(minCords)))
 
-        val pointCorrect = testCase.expectedPoint.find(p => p.equals(resultValue)) match
-          case None => s"NO, incorrect point"
-          case Some(p) => s"YES, coorect point"
-        
-        println(s"Method: ${testCase.name}")
-        println(s"Scheduler methods: $scheduler")
-        println(f"Found point: (${minCords.x}%.20f, ${minCords.y}%.20f)")
-        println(f"Function value: ${resultValue.z}%.20f")
-        println(s"Iterations: $iterations")
-        println(s"Point correct: $pointCorrect")
-        println("-" * 30)
+        val isCorrect =
+          testCase.expectedPoint.exists(p => p.equals(resultValue))
+
+        printTableRow(
+          scheduler.toString,
+          minCords,
+          resultValue.z,
+          iterations,
+          isCorrect
+        )
       }
+      println()
     }
   }
 
